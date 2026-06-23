@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Salganickの仮想音楽市場実験を再現 - 社会的影響が音楽の人気に与える効果を検証">
+    <title>Music Lab Experiment - 仮想音楽市場実験</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ========== パーティクル背景 ========== -->
+    <canvas id="particle-canvas"></canvas>
+    <!-- ========== ウェルカム画面 ========== -->
+    <section id="screen-welcome" class="screen active">
+        <div class="container welcome-container">
+            <div class="logo-icon">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <circle cx="50" cy="50" r="45" stroke="url(#grad1)" stroke-width="3" opacity="0.6"/>
+                    <circle cx="50" cy="50" r="30" stroke="url(#grad1)" stroke-width="2" opacity="0.4"/>
+                    <circle cx="50" cy="50" r="15" fill="url(#grad1)" opacity="0.8"/>
+                    <path d="M35 50 Q50 25 65 50 Q50 75 35 50Z" fill="url(#grad2)" opacity="0.6"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#7c3aed"/>
+                            <stop offset="100%" style="stop-color:#06b6d4"/>
+                        </linearGradient>
+                        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#f472b6"/>
+                            <stop offset="100%" style="stop-color:#7c3aed"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="welcome-title">
+                <span class="title-line">Music Lab</span>
+                <span class="title-sub">仮想音楽市場実験</span>
+            </h1>
+            <p class="welcome-desc">
+                この実験では、いくつかの楽曲を視聴していただき、<br>
+                それぞれの楽曲について評価をお願いします。<br>
+                <span class="highlight">所要時間: 約10〜15分</span>
+            </p>
+            <div class="welcome-info">
+                <div class="info-card">
+                    <div class="info-icon">🎵</div>
+                    <div class="info-text">
+                        <strong>8曲を視聴</strong>
+                        <span>好きな曲を自由に聴けます</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">⭐</div>
+                    <div class="info-text">
+                        <strong>5段階で評価</strong>
+                        <span>各曲の好みを教えてください</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">📊</div>
+                    <div class="info-text">
+                        <strong>結果を分析</strong>
+                        <span>社会的影響の効果を検証</span>
+                    </div>
+                </div>
+            </div>
+            <button id="btn-start" class="btn btn-primary btn-glow">
+                <span>実験を開始する</span>
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+            <p class="credit">Based on Salganik, Dodds & Watts (2006) "Experimental Study of Inequality and Unpredictability in an Artificial Cultural Market"</p>
+        </div>
+    </section>
+    <!-- ========== 同意画面 ========== -->
+    <section id="screen-consent" class="screen">
+        <div class="container consent-container">
+            <div class="section-badge">STEP 1</div>
+            <h2>実験の説明と同意</h2>
+            <div class="consent-box">
+                <h3>実験の目的</h3>
+                <p>本実験は、Salganick et al. (2006) の仮想音楽市場実験を再現したものです。音楽の選好に対する社会的影響の効果を調べます。</p>
+                
+                <h3>実験の流れ</h3>
+                <ol>
+                    <li>ランダムに実験群に割り当てられます</li>
+                    <li>8曲のミュージックビデオが表示されます</li>
+                    <li>自由に楽曲を視聴してください</li>
+                    <li>各楽曲を5段階で評価してください</li>
+                    <li>最後に結果が表示されます</li>
+                </ol>
+                
+                <h3>注意事項</h3>
+                <ul>
+                    <li>データは<strong>ブラウザのローカルストレージ</strong>にのみ保存されます</li>
+                    <li>個人を特定する情報は収集しません</li>
+                    <li>いつでも実験を中断できます</li>
+                    <li>音が出ますので、適切な音量に調整してください</li>
+                </ul>
+            </div>
+            <div class="consent-actions">
+                <button id="btn-consent" class="btn btn-primary">
+                    同意して参加する
+                </button>
+                <button id="btn-decline" class="btn btn-ghost">
+                    参加しない
+                </button>
+            </div>
+        </div>
+    </section>
+    <!-- ========== グループ割り当て画面 ========== -->
+    <section id="screen-assignment" class="screen">
+        <div class="container assignment-container">
+            <div class="assignment-animation">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring ring-2"></div>
+                <div class="spinner-ring ring-3"></div>
+                <div class="assignment-icon">🎲</div>
+            </div>
+            <h2 id="assignment-title">グループを割り当て中...</h2>
+            <p id="assignment-desc" class="assignment-desc">ランダムにグループを選択しています</p>
+            <div id="assignment-result" class="assignment-result hidden">
+                <div class="result-badge" id="group-badge"></div>
+                <p id="group-explanation"></p>
+                <button id="btn-to-experiment" class="btn btn-primary">
+                    楽曲を視聴する
+                </button>
+            </div>
+        </div>
+    </section>
+    <!-- ========== 実験画面 ========== -->
+    <section id="screen-experiment" class="screen">
+        <div class="experiment-header">
+            <div class="experiment-header-left">
+                <div class="experiment-badge" id="experiment-group-badge"></div>
+                <h2>楽曲を視聴・評価</h2>
+            </div>
+            <div class="experiment-header-right">
+                <div class="progress-info">
+                    <span id="rated-count">0</span> / <span id="total-count">8</span> 曲 評価済み
+                </div>
+                <button id="btn-finish" class="btn btn-primary btn-sm" disabled>
+                    結果を見る
+                </button>
+            </div>
+        </div>
+        <div class="experiment-instruction">
+            <p>🎧 気になる曲をクリックして視聴し、⭐で評価してください。<span id="instruction-social" class="hidden">再生回数も参考にできます。</span></p>
+        </div>
+        <div id="song-grid" class="song-grid">
+            <!-- 曲カードはJSで動的に生成 -->
+        </div>
+    </section>
+    <!-- ========== 動画プレイヤーモーダル ========== -->
+    <div id="video-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button id="btn-close-modal" class="modal-close">&times;</button>
+            <div class="modal-video-wrapper">
+                <div id="video-player-container" class="video-player-container">
+                    <!-- YouTube iframeがここに挿入される -->
+                </div>
+            </div>
+            <div class="modal-info">
+                <h3 id="modal-song-title"></h3>
+                <p id="modal-song-detail"></p>
+                <div class="modal-rating">
+                    <span class="rating-label">この曲の評価:</span>
+                    <div id="modal-stars" class="star-rating">
+                        <button class="star" data-value="1">★</button>
+                        <button class="star" data-value="2">★</button>
+                        <button class="star" data-value="3">★</button>
+                        <button class="star" data-value="4">★</button>
+                        <button class="star" data-value="5">★</button>
+                    </div>
+                    <span id="modal-rating-text" class="rating-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ========== 結果画面 ========== -->
+    <section id="screen-results" class="screen">
+        <div class="container results-container">
+            <div class="section-badge">RESULTS</div>
+            <h2>実験結果</h2>
+            <p class="results-intro">あなたの評価データと、両群の比較結果です。</p>
+            <!-- あなたの結果 -->
+            <div class="results-section">
+                <h3>📊 あなたの評価</h3>
+                <div class="your-group-info" id="your-group-info"></div>
+                <div id="your-ratings" class="ratings-chart"></div>
+            </div>
+            <!-- 群間比較 -->
+            <div class="results-section">
+                <h3>📈 群間比較: 社会的影響の効果</h3>
+                <div class="comparison-explanation">
+                    <p><strong>Independent群</strong>（再生回数非表示）と<strong>Social Influence群</strong>（再生回数表示）の評価を比較します。</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+                <div id="comparison-table-container"></div>
+            </div>
+            <!-- 不平等性の分析 -->
+            <div class="results-section">
+                <h3>📉 不平等性の分析（ジニ係数）</h3>
+                <div class="gini-container" id="gini-container"></div>
+            </div>
+            <!-- 統計サマリー -->
+            <div class="results-section">
+                <h3>🔬 統計サマリー</h3>
+                <div id="stats-summary" class="stats-summary"></div>
+            </div>
+            <div class="results-actions">
+                <button id="btn-admin" class="btn btn-secondary">
+                    🔧 管理者ダッシュボード
+                </button>
+                <button id="btn-restart" class="btn btn-primary">
+                    🔄 別のグループでもう一度
+                </button>
+            </div>
+        </div>
+    </section>
+    <!-- ========== 管理者ダッシュボード ========== -->
+    <section id="screen-admin" class="screen">
+        <div class="container admin-container">
+            <div class="section-badge">ADMIN</div>
+            <h2>管理者ダッシュボード</h2>
+            <p class="admin-desc">全参加者のデータを一覧・管理できます。</p>
+            <div class="admin-stats" id="admin-stats"></div>
+            
+            <div class="admin-section">
+                <h3>📋 全参加者データ</h3>
+                <div id="admin-participants-table"></div>
+            </div>
+            <div class="admin-section">
+                <h3>📊 曲別の平均評価比較</h3>
+                <div class="chart-container">
+                    <canvas id="admin-chart"></canvas>
+                </div>
+            </div>
+            <div class="admin-section">
+                <h3>📈 累積再生回数の推移</h3>
+                <div class="chart-container">
+                    <canvas id="play-count-chart"></canvas>
+                </div>
+            </div>
+            <div class="admin-actions">
+                <button id="btn-export" class="btn btn-secondary">
+                    📥 データをCSVエクスポート
+                </button>
+                <button id="btn-reset-data" class="btn btn-danger">
+                    🗑️ 全データリセット
+                </button>
+                <button id="btn-back-results" class="btn btn-ghost">
+                    ← 結果に戻る
+                </button>
+            </div>
+        </div>
+    </section>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
