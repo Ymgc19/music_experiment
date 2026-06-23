@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音楽市場実験</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#191c23; --panel2:#21252e; --line:#2c313c;
+    --text:#e8eaf0; --muted:#9aa3b2; --accent:#5b8cff; --accent2:#34d399;
+    --warn:#f59e0b; --danger:#ef4444; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:28px 18px 80px}
+  h1{font-size:1.5rem; margin:.2em 0 .4em}
+  h2{font-size:1.15rem; margin:1.2em 0 .4em}
+  p{color:var(--text)}
+  .muted{color:var(--muted)}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow)}
+  .btn{appearance:none; border:0; border-radius:10px; padding:11px 18px; font-size:1rem;
+    font-weight:600; cursor:pointer; color:#fff; background:var(--accent); transition:filter .15s, transform .05s;}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+  .btn.ghost{background:var(--panel2); color:var(--text); border:1px solid var(--line)}
+  .btn.green{background:var(--accent2); color:#05291d}
+  .btn.warn{background:var(--warn); color:#241a02}
+  .btn.danger{background:var(--danger)}
+  .btn.sm{padding:7px 12px; font-size:.85rem}
+  .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  label.check{display:flex; gap:10px; align-items:flex-start; cursor:pointer; margin:14px 0}
+  input[type=checkbox]{width:20px; height:20px; margin-top:3px}
+  input[type=password],input[type=text]{background:#0c0e12; color:var(--text); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; font-size:1rem}
+  .progress{font-size:.85rem; color:var(--muted)}
+  .songlist{display:flex; flex-direction:column; gap:10px; margin-top:8px}
+  .song{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center;
+    background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .song .meta{min-width:0}
+  .song .title{font-weight:700; font-size:1.02rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .song .artist{color:var(--muted); font-size:.88rem}
+  .song .genre{color:var(--muted); font-size:.74rem; opacity:.8}
+  .song .plays{display:inline-block; margin-top:4px; font-size:.82rem; color:var(--accent); background:rgba(91,140,255,.12);
+    border:1px solid rgba(91,140,255,.3); padding:2px 8px; border-radius:999px}
+  .song .controls{display:flex; gap:8px; align-items:center}
+  .iconbtn{border:1px solid var(--line); background:#171a21; color:var(--text); border-radius:10px;
+    padding:8px 12px; cursor:pointer; font-size:.9rem; font-weight:600; white-space:nowrap;}
+  .iconbtn:hover{filter:brightness(1.12)}
+  .iconbtn.playing{border-color:var(--accent); color:var(--accent)}
+  .iconbtn.dl.on{background:var(--accent2); color:#05291d; border-color:var(--accent2)}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px}
+  .pill{font-size:.8rem; color:var(--muted); background:var(--panel2); border:1px solid var(--line); padding:4px 10px; border-radius:999px}
+  .footerbar{position:sticky; bottom:0; margin-top:18px; background:linear-gradient(180deg,transparent,var(--bg) 40%); padding-top:16px}
+  .center{text-align:center}
+  .hidden{display:none}
+  .tag{font-size:.72rem; color:var(--muted)}
+  .small{font-size:.85rem}
+  .adminlink{margin-top:22px; text-align:center}
+  .adminlink a{color:var(--muted); font-size:.78rem; text-decoration:none; opacity:.6; cursor:pointer}
+  .adminlink a:hover{opacity:1; text-decoration:underline}
+  /* dashboard */
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0}
+  @media(max-width:640px){.stats{grid-template-columns:1fr}}
+  .statcard{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:16px}
+  .statcard h3{margin:0 0 8px; font-size:1.05rem}
+  .statcard.ind h3{color:var(--muted)}
+  .statcard.soc h3{color:var(--accent)}
+  .big{font-size:1.9rem; font-weight:800; line-height:1.1}
+  .kv{display:flex; justify-content:space-between; font-size:.9rem; padding:3px 0; border-top:1px dashed var(--line)}
+  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:.86rem}
+  th,td{padding:8px 8px; border-bottom:1px solid var(--line); text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted); font-weight:600; font-size:.78rem}
+  .bar{height:10px; border-radius:6px; background:var(--accent); display:inline-block; vertical-align:middle}
+  .barwrap{display:flex; align-items:center; gap:6px; justify-content:flex-end}
+  .note{font-size:.85rem; color:var(--muted); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============================================================
+   音楽市場実験（Salganik et al., 2006 を再現＋改変）
+   単体HTML/JS・サーバー不要。ブラウザで開くだけで動作。
+   改変点:
+     (1) 参加者は自分がどの群か分からない（群ラベル非表示）
+     (2) social influence 群では「架空の再生回数」を表示
+   追加:
+     (3) 各曲は約10秒・スタイルの異なる合成音（音源差し替え可）
+     (4) パスワード式の実験者ダッシュボード（群ごとのGini係数など）
+   ============================================================ */
+
+/* =======================  実験者が編集する設定  ======================= */
+const CONFIG = {
+  conditionAssignment: 'random',    // 'random' | 'independent' | 'social'
+  socialSortByPlays: true,          // social群: 再生回数の降順で並べる
+  independentRandomOrder: true,     // independent群: 曲順ランダム
+  incrementOnDownload: false,       // 自分のDLで表示回数を+1する演出（既定OFF=固定値を厳密維持）
+  minDownloads: 0,                  // 完了に必要な最低DL数（0で制限なし）
+  requireListenBeforeDownload: false,
+  clipSeconds: 10,                  // 試聴の長さ（秒）。実音源もこの長さで停止
+  dataEndpoint: '',                 // 任意のPOST送信先（空なら送信しない）
+
+  adminPassword: 'salganik2026',    // 実験者ダッシュボードのパスワード（必ず変更してください）
+
+  // 曲リスト。fakePlays = social群で表示する架空の再生回数（操作変数）。
+  // style = 合成音の音楽スタイル（下の STYLES のキー）。audioUrl があれば実音源を使用。
+  songs: [
+    { id:'S01', title:'Pale Blue Hour',     artist:'The Nightswimmers', fakePlays:1842, style:'dream',     audioUrl:'' },
+    { id:'S02', title:'Neon Pavement',      artist:'Kite & Compass',    fakePlays:1190, style:'citypop',   audioUrl:'' },
+    { id:'S03', title:'Glasshouse',         artist:'Vera Mond',         fakePlays: 873, style:'melancholy',audioUrl:'' },
+    { id:'S04', title:'Static Bloom',       artist:'Lowtide Society',   fakePlays: 642, style:'lofi',      audioUrl:'' },
+    { id:'S05', title:'Carousel Town',      artist:'Marigold Avenue',   fakePlays: 410, style:'waltz',     audioUrl:'' },
+    { id:'S06', title:'Cassette Summer',    artist:'Boys of the Tape',  fakePlays: 318, style:'anthem',    audioUrl:'' },
+    { id:'S07', title:'North Window',       artist:'Ada Pell',          fakePlays: 256, style:'folk',      audioUrl:'' },
+    { id:'S08', title:'Velvet Antenna',     artist:'The Quiet Mile',    fakePlays: 174, style:'mystic',    audioUrl:'' },
+    { id:'S09', title:'Saltwater Radio',    artist:'Foxglove Park',     fakePlays: 121, style:'funk',      audioUrl:'' },
+    { id:'S10', title:'Concrete Garden',    artist:'Mirrorhouse',       fakePlays:  88, style:'ambient',   audioUrl:'' },
+    { id:'S11', title:'Slow Headlights',    artist:'Junebloom',         fakePlays:  47, style:'blues',     audioUrl:'' },
+    { id:'S12', title:'Tin Roof Lullaby',   artist:'The Owl Collective',fakePlays:  23, style:'bright',    audioUrl:'' },
+  ],
+};
+
+// 合成音のスタイル定義（音階・テンポ・音色・密度・ベース/打楽器）。曲ごとに大きく印象が変わります。
+const STYLES = {
+  dream:     {label:'ドリーム・ポップ', bpm:84,  root:'C4', scale:[0,2,4,7,9],        lead:'triangle', bass:'sine',     perc:false, pattern:'arp',    density:2, octave:0},
+  citypop:   {label:'シティポップ',     bpm:112, root:'E4', scale:[0,2,4,5,7,9,11],   lead:'square',   bass:'triangle', perc:true,  pattern:'melody', density:2, octave:0},
+  melancholy:{label:'メランコリック',   bpm:72,  root:'A3', scale:[0,2,3,5,7,8,10],   lead:'sine',     bass:'sine',     perc:false, pattern:'melody', density:1, octave:1},
+  lofi:      {label:'ローファイ',       bpm:78,  root:'D4', scale:[0,2,3,5,7,9,10],   lead:'triangle', bass:'sine',     perc:true,  pattern:'melody', density:2, octave:0},
+  waltz:     {label:'ワルツ(3拍子)',    bpm:138, root:'G3', scale:[0,2,3,5,7,8,11],   lead:'triangle', bass:'triangle', perc:false, pattern:'arp',    density:1, octave:1, meter:3},
+  anthem:    {label:'アンセム',         bpm:128, root:'F4', scale:[0,2,4,5,7,9,11],   lead:'square',   bass:'sawtooth', perc:true,  pattern:'melody', density:2, octave:0},
+  folk:      {label:'フォーク',         bpm:104, root:'G4', scale:[0,2,4,7,9],        lead:'triangle', bass:'triangle', perc:false, pattern:'melody', density:2, octave:0},
+  mystic:    {label:'ミステリアス',     bpm:96,  root:'D4', scale:[0,1,3,5,7,8,10],   lead:'sine',     bass:'sine',     perc:false, pattern:'arp',    density:3, octave:0},
+  funk:      {label:'ファンク',         bpm:116, root:'C4', scale:[0,3,5,7,10],       lead:'square',   bass:'square',   perc:true,  pattern:'melody', density:2, octave:0},
+  ambient:   {label:'アンビエント',     bpm:58,  root:'F4', scale:[0,2,4,6,7,9,11],   lead:'sine',     bass:null,       perc:false, pattern:'arp',    density:1, octave:0},
+  blues:     {label:'ブルース',         bpm:90,  root:'A3', scale:[0,3,5,6,7,10],     lead:'square',   bass:'triangle', perc:true,  pattern:'melody', density:2, octave:1},
+  bright:    {label:'ブライト',         bpm:124, root:'D4', scale:[0,2,4,6,7,9,11],   lead:'triangle', bass:'triangle', perc:true,  pattern:'arp',    density:2, octave:0},
+};
+/* ===================  設定ここまで（以下は通常編集不要）  =================== */
+
+
+/* ----------  状態  ---------- */
+const STORE_PREFIX='musicmarket_';
+const STATE = {
+  participantId: genId(), condition:null, startedAt:null,
+  songOrder:[], log:{}, downloadCounter:0,
+};
+function genId(){ return 'P-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7); }
+function assignCondition(){
+  if(CONFIG.conditionAssignment==='independent') return 'independent';
+  if(CONFIG.conditionAssignment==='social') return 'social';
+  return Math.random()<0.5 ? 'independent' : 'social';
+}
+function buildOrder(){
+  const songs=CONFIG.songs.slice();
+  if(STATE.condition==='social' && CONFIG.socialSortByPlays) songs.sort((a,b)=>b.fakePlays-a.fakePlays);
+  else shuffle(songs);
+  return songs.map(s=>s.id);
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function songById(id){ return CONFIG.songs.find(s=>s.id===id); }
+
+/* ----------  音声エンジン（約10秒・スタイル別）  ---------- */
+let audioCtx=null, currentNodes=[], currentMaster=null, currentAudioEl=null, currentlyPlaying=null, endTimer=null, noiseBuf=null;
+function ctx(){ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function noteToHz(n){
+  const m=/^([A-G])(#|b)?(-?\d)$/.exec(n); const map={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  let s=map[m[1]]; if(m[2]==='#')s++; if(m[2]==='b')s--;
+  const midi=12*(parseInt(m[3])+1)+s; return 440*Math.pow(2,(midi-69)/12);
+}
+function seedFromId(id){ return id.split('').reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7); }
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed);
+  t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function noiseBuffer(){ if(noiseBuf) return noiseBuf; const c=ctx(); const b=c.createBuffer(1,c.sampleRate*0.2,c.sampleRate);
+  const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; noiseBuf=b; return b; }
+
+function stopAudio(){
+  currentNodes.forEach(n=>{ try{n.stop();}catch(e){} try{n.disconnect();}catch(e){} });
+  currentNodes=[];
+  if(currentMaster){ try{currentMaster.disconnect();}catch(e){} currentMaster=null; }
+  if(currentAudioEl){ try{currentAudioEl.pause();}catch(e){} currentAudioEl=null; }
+  if(endTimer){ clearTimeout(endTimer); endTimer=null; }
+  currentlyPlaying=null;
+}
+function voice(type,freq,start,dur,gain,dest){
+  const c=ctx(), o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(0,start); g.gain.linearRampToValueAtTime(gain,start+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0008,start+dur);
+  o.connect(g).connect(dest); o.start(start); o.stop(start+dur+0.02); currentNodes.push(o);
+}
+function hat(start,dest){
+  const c=ctx(), src=c.createBufferSource(); src.buffer=noiseBuffer();
+  const hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7000;
+  const g=c.createGain(); g.gain.setValueAtTime(0.07,start); g.gain.exponentialRampToValueAtTime(0.0005,start+0.05);
+  src.connect(hp).connect(g).connect(dest); src.start(start); src.stop(start+0.06); currentNodes.push(src);
+}
+function kick(start,dest){
+  const c=ctx(), o=c.createOscillator(), g=c.createGain();
+  o.frequency.setValueAtTime(140,start); o.frequency.exponentialRampToValueAtTime(45,start+0.12);
+  g.gain.setValueAtTime(0.28,start); g.gain.exponentialRampToValueAtTime(0.0005,start+0.18);
+  o.connect(g).connect(c.destination); o.start(start); o.stop(start+0.2); currentNodes.push(o);
+}
+function playSynth(song){
+  const c=ctx(); const st=STYLES[song.style]||STYLES.dream;
+  const now=c.currentTime+0.06, dur=CONFIG.clipSeconds;
+  const master=c.createGain(); master.gain.value=0.85; master.connect(c.destination);
+  master.gain.setValueAtTime(0.85, now+dur-0.5); master.gain.linearRampToValueAtTime(0.0001, now+dur);
+  currentMaster=master;
+  const rootHz=noteToHz(st.root), beat=60/st.bpm, r=rng(seedFromId(song.id));
+  const step=beat/(st.density||2);
+  // lead / arp melody
+  let t=now, arp=0;
+  while(t<now+dur-0.05){
+    let deg = st.pattern==='arp' ? st.scale[arp++%st.scale.length] : st.scale[Math.floor(r()*st.scale.length)];
+    let oct = st.octave||0; if(st.pattern==='melody' && r()<0.22) oct+=1;
+    const rest = st.pattern==='melody' && r()<0.12;
+    if(!rest) voice(st.lead, rootHz*Math.pow(2,(deg+12*oct)/12), t, step*0.9, 0.15, master);
+    t+=step;
+  }
+  // bass on the beat (meter-aware)
+  if(st.bass){
+    let bt=now, bi=0; const meter=st.meter||4;
+    while(bt<now+dur-0.05){
+      const deg = (bi%meter===0)? st.scale[0] : st.scale[Math.min(2,st.scale.length-1)];
+      voice(st.bass, rootHz*Math.pow(2,(deg-12)/12), bt, beat*0.9, 0.20, master);
+      bt+=beat; bi++;
+    }
+  }
+  // percussion
+  if(st.perc){
+    let ht=now; while(ht<now+dur-0.05){ hat(ht,master); ht+=beat/2; }
+    let kt=now; while(kt<now+dur-0.05){ kick(kt,master); kt+=beat*2; }
+  }
+  currentlyPlaying=song.id;
+  endTimer=setTimeout(()=>{ if(currentlyPlaying===song.id){ stopAudio(); render(); } }, dur*1000+150);
+}
+function playSong(song){
+  stopAudio();
+  if(song.audioUrl){
+    currentAudioEl=new Audio(song.audioUrl); currentAudioEl.play().catch(()=>{});
+    currentlyPlaying=song.id;
+    endTimer=setTimeout(()=>{ if(currentlyPlaying===song.id){ stopAudio(); render(); } }, CONFIG.clipSeconds*1000);
+    currentAudioEl.onended=()=>{ currentlyPlaying=null; render(); };
+    return;
+  }
+  playSynth(song);
+}
+
+/* ----------  ログ  ---------- */
+function ensureLog(id){ if(!STATE.log[id]) STATE.log[id]={listenCount:0,firstListenAt:null,downloaded:false,downloadOrder:null,downloadedAt:null}; return STATE.log[id]; }
+function onListen(song){
+  if(currentlyPlaying===song.id){ stopAudio(); render(); return; }
+  const L=ensureLog(song.id); L.listenCount++; if(!L.firstListenAt) L.firstListenAt=Date.now();
+  playSong(song); render();
+}
+function onDownloadToggle(song){
+  const L=ensureLog(song.id);
+  if(!L.downloaded){
+    if(CONFIG.requireListenBeforeDownload && L.listenCount===0){ alert('まず試聴してからダウンロードしてください。'); return; }
+    L.downloaded=true; STATE.downloadCounter++; L.downloadOrder=STATE.downloadCounter; L.downloadedAt=Date.now();
+  } else { L.downloaded=false; L.downloadOrder=null; L.downloadedAt=null; }
+  render();
+}
+function totalDownloads(){ return Object.values(STATE.log).filter(l=>l.downloaded).length; }
+
+/* ----------  画面  ---------- */
+let screen = (location.hash==='#admin') ? 'login' : 'consent';
+const app=document.getElementById('app');
+function render(){
+  ({consent:renderConsent, market:renderMarket, done:renderDone, login:renderLogin, admin:renderAdmin}[screen]||renderConsent)();
+}
+
+function renderConsent(){
+  app.innerHTML=`
+    <h1>音楽試聴・調査</h1>
+    <div class="card">
+      <p>新人アーティストの楽曲（各約${CONFIG.clipSeconds}秒）を聴いて、あなたの好みを教えてください。</p>
+      <h2>やること</h2>
+      <p class="muted">楽曲リストから気になる曲を自由に<b>試聴</b>できます。気に入った曲は<b>ダウンロード</b>で選んでください。曲数や時間に決まりはありません。終わったら「完了する」を押してください。</p>
+      <label class="check"><input type="checkbox" id="consent"><span>調査の趣旨を理解し、回答データが研究目的で匿名で利用されることに同意します。</span></label>
+      <div class="row"><button class="btn" id="startBtn" disabled>はじめる</button>
+        <span class="progress">参加者ID: ${STATE.participantId}</span></div>
+    </div>
+    <p class="tag" style="margin-top:14px">※ 本調査の詳しい目的は終了後にご説明します。</p>
+    <div class="adminlink"><a id="adminLink">実験者用ログイン</a></div>`;
+  const cb=document.getElementById('consent'), sb=document.getElementById('startBtn');
+  cb.onchange=()=>sb.disabled=!cb.checked;
+  sb.onclick=()=>{ STATE.condition=assignCondition(); STATE.songOrder=buildOrder(); STATE.startedAt=Date.now();
+    CONFIG.songs.forEach(s=>ensureLog(s.id)); screen='market'; render(); };
+  document.getElementById('adminLink').onclick=()=>{ screen='login'; render(); };
+}
+
+function renderMarket(){
+  const isSocial=STATE.condition==='social';
+  const rows=STATE.songOrder.map(id=>{
+    const s=songById(id), L=ensureLog(id), playing=currentlyPlaying===id;
+    const badge = isSocial ? `<span class="plays">▶ ${formatNum(displayPlays(s,L))} 回再生</span>` : '';
+    return `<div class="song"><div class="meta">
+        <div class="title">${esc(s.title)}</div>
+        <div class="artist">${esc(s.artist)}</div>${badge}
+      </div><div class="controls">
+        <button class="iconbtn ${playing?'playing':''}" data-listen="${id}">${playing?'■ 停止':'▶ 試聴'}</button>
+        <button class="iconbtn dl ${L.downloaded?'on':''}" data-dl="${id}">${L.downloaded?'✓ 選択済み':'⬇ ダウンロード'}</button>
+      </div></div>`;
+  }).join('');
+  const need=CONFIG.minDownloads>0?`（あと${Math.max(0,CONFIG.minDownloads-totalDownloads())}曲以上）`:'';
+  const canFinish=totalDownloads()>=CONFIG.minDownloads;
+  app.innerHTML=`
+    <div class="topbar"><h1 style="margin:0">楽曲リスト</h1><span class="pill">ダウンロード: ${totalDownloads()}曲</span></div>
+    <p class="muted small">気になる曲を試聴し、気に入ったらダウンロードしてください。${need}</p>
+    <div class="songlist">${rows}</div>
+    <div class="footerbar center"><button class="btn green" id="finishBtn" ${canFinish?'':'disabled'}>完了する</button></div>`;
+  app.querySelectorAll('[data-listen]').forEach(b=>b.onclick=()=>onListen(songById(b.dataset.listen)));
+  app.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>onDownloadToggle(songById(b.dataset.dl)));
+  const fb=document.getElementById('finishBtn'); if(fb) fb.onclick=finish;
+}
+function displayPlays(s,L){ let v=s.fakePlays; if(CONFIG.incrementOnDownload && L.downloaded) v+=1; return v; }
+
+function finish(){
+  stopAudio(); STATE.finishedAt=Date.now();
+  const payload=buildPayload();
+  try{ localStorage.setItem(STORE_PREFIX+STATE.participantId, JSON.stringify(payload)); }catch(e){}
+  if(CONFIG.dataEndpoint){ try{ fetch(CONFIG.dataEndpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }catch(e){} }
+  screen='done'; render();
+}
+function renderDone(){
+  app.innerHTML=`
+    <h1>ありがとうございました</h1>
+    <div class="card">
+      <p>ご協力ありがとうございました。回答は記録されました。</p>
+      <h2>この調査について（説明）</h2>
+      <p class="muted small">この調査は、他者の選択に関する情報が個人の音楽の好みにどう影響するかを調べる研究の一部です。参加者は2つの提示条件のいずれかに無作為に割り当てられており、一方の条件では各曲に再生回数が表示されていました。表示された再生回数は研究のために設定された数値であり、実際の人気を表すものではありません。</p>
+      <div class="row" style="margin-top:16px">
+        <button class="btn" id="csvBtn">CSVを保存</button>
+        <button class="btn ghost" id="jsonBtn">JSONを保存</button>
+      </div>
+      <p class="tag" style="margin-top:14px">参加者ID: ${STATE.participantId}　/　記録はこの端末にも保存されています。</p>
+    </div>`;
+  document.getElementById('csvBtn').onclick=()=>downloadFile(toCSV(buildPayload()),`musicmarket_${STATE.participantId}.csv`,'text/csv');
+  document.getElementById('jsonBtn').onclick=()=>downloadFile(JSON.stringify(buildPayload(),null,2),`musicmarket_${STATE.participantId}.json`,'application/json');
+}
+
+/* ----------  実験者ログイン＆ダッシュボード  ---------- */
+function renderLogin(){
+  app.innerHTML=`
+    <h1>実験者用ログイン</h1>
+    <div class="card">
+      <p class="muted small">パスワードを入力してください。</p>
+      <div class="row"><input type="password" id="pw" placeholder="パスワード" autofocus>
+        <button class="btn" id="loginBtn">ログイン</button></div>
+      <p id="pwErr" class="tag" style="color:var(--danger); min-height:1em"></p>
+      <div class="adminlink"><a id="backLink">← 参加者画面へ戻る</a></div>
+    </div>`;
+  const go=()=>{ if(document.getElementById('pw').value===CONFIG.adminPassword){ screen='admin'; render(); }
+    else document.getElementById('pwErr').textContent='パスワードが違います。'; };
+  document.getElementById('loginBtn').onclick=go;
+  document.getElementById('pw').onkeydown=e=>{ if(e.key==='Enter') go(); };
+  document.getElementById('backLink').onclick=()=>{ screen='consent'; location.hash=''; render(); };
+}
+
+function loadAllParticipants(){
+  const out=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && k.indexOf(STORE_PREFIX)===0){ try{ out.push(JSON.parse(localStorage.getItem(k))); }catch(e){} }
+  }
+  return out;
+}
+function gini(values){
+  const x=values.filter(v=>v>=0).slice().sort((a,b)=>a-b); const n=x.length; if(!n) return 0;
+  const sum=x.reduce((a,b)=>a+b,0); if(sum===0) return 0;
+  let cum=0; for(let i=0;i<n;i++) cum+=(i+1)*x[i];
+  return (2*cum)/(n*sum)-(n+1)/n;
+}
+function pearson(a,b){
+  const n=a.length; if(n<2) return NaN;
+  const ma=a.reduce((x,y)=>x+y,0)/n, mb=b.reduce((x,y)=>x+y,0)/n;
+  let num=0,da=0,db=0; for(let i=0;i<n;i++){ const x=a[i]-ma,y=b[i]-mb; num+=x*y; da+=x*x; db+=y*y; }
+  return (da===0||db===0)?NaN:num/Math.sqrt(da*db);
+}
+function aggregate(parts){
+  const conds={independent:null, social:null};
+  ['independent','social'].forEach(cond=>{
+    const ps=parts.filter(p=>p.condition===cond);
+    const dl={}, lis={}; CONFIG.songs.forEach(s=>{ dl[s.id]=0; lis[s.id]=0; });
+    let totalDL=0;
+    ps.forEach(p=>(p.songs||[]).forEach(s=>{ if(s.downloaded){ dl[s.songId]=(dl[s.songId]||0)+1; totalDL++; } lis[s.songId]=(lis[s.songId]||0)+(s.listenCount||0); }));
+    const vec=CONFIG.songs.map(s=>dl[s.id]);
+    conds[cond]={ n:ps.length, totalDL, meanDL: ps.length? totalDL/ps.length:0, gini:gini(vec), dl, lis, vec };
+  });
+  return conds;
+}
+
+function renderAdmin(){
+  const parts=loadAllParticipants();
+  const agg=aggregate(parts);
+  const ind=agg.independent, soc=agg.social;
+  const fakeVec=CONFIG.songs.map(s=>s.fakePlays);
+  const rFakeSocial = soc.totalDL>0 ? pearson(fakeVec, soc.vec) : NaN;
+  const rFakeInd    = ind.totalDL>0 ? pearson(fakeVec, ind.vec) : NaN;
+  const maxDL=Math.max(1,...CONFIG.songs.map(s=>Math.max(ind.dl[s.id],soc.dl[s.id])));
+
+  const rows=CONFIG.songs.slice().sort((a,b)=>b.fakePlays-a.fakePlays).map(s=>{
+    const di=ind.dl[s.id], ds=soc.dl[s.id];
+    const si=ind.totalDL?(100*di/ind.totalDL):0, ss=soc.totalDL?(100*ds/soc.totalDL):0;
+    return `<tr>
+      <td>${esc(s.title)}<div class="tag">${esc(s.artist)} · ${STYLES[s.style]?STYLES[s.style].label:''}</div></td>
+      <td>${formatNum(s.fakePlays)}</td>
+      <td><div class="barwrap"><span class="bar" style="width:${Math.round(60*di/maxDL)}px;background:var(--muted)"></span>${di}</div></td>
+      <td>${si.toFixed(1)}%</td>
+      <td><div class="barwrap"><span class="bar" style="width:${Math.round(60*ds/maxDL)}px"></span>${ds}</div></td>
+      <td>${ss.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+
+  const giniNote = (ind.n&&soc.n)
+    ? `social群のGini係数は ${soc.gini.toFixed(3)}、independent群は ${ind.gini.toFixed(3)} です。` +
+      (soc.gini>ind.gini ? ' 社会的影響条件で不平等（勝者総取り）が大きくなっています（Salganikの主要知見と整合）。'
+                         : ' 現時点では社会的影響条件で不平等は大きくなっていません。')
+    : '両群にデータが揃うと比較が表示されます。';
+
+  app.innerHTML=`
+    <div class="topbar"><h1 style="margin:0">実験者ダッシュボード</h1>
+      <span class="pill">参加者 ${parts.length}名（指標を ${escNum(ind.n)} / ${escNum(soc.n)}）</span></div>
+    <div class="stats">
+      <div class="statcard ind"><h3>independent群（再生回数なし）</h3>
+        <div class="big">Gini ${ind.gini.toFixed(3)}</div>
+        <div class="kv"><span>参加者数</span><b>${ind.n}</b></div>
+        <div class="kv"><span>総ダウンロード</span><b>${ind.totalDL}</b></div>
+        <div class="kv"><span>平均DL/人</span><b>${ind.meanDL.toFixed(2)}</b></div>
+        <div class="kv"><span>架空再生回数との相関 r</span><b>${fmtR(rFakeInd)}</b></div>
+      </div>
+      <div class="statcard soc"><h3>social群（架空再生回数あり）</h3>
+        <div class="big">Gini ${soc.gini.toFixed(3)}</div>
+        <div class="kv"><span>参加者数</span><b>${soc.n}</b></div>
+        <div class="kv"><span>総ダウンロード</span><b>${soc.totalDL}</b></div>
+        <div class="kv"><span>平均DL/人</span><b>${soc.meanDL.toFixed(2)}</b></div>
+        <div class="kv"><span>架空再生回数との相関 r</span><b>${fmtR(rFakeSocial)}</b></div>
+      </div>
+    </div>
+    <div class="note"><b>Gini係数</b>：曲ごとのダウンロード数の偏り（0=完全均等〜1=独占）。${giniNote}</div>
+    <h2>曲別ダウンロード（架空再生回数の降順）</h2>
+    <table><thead><tr><th>曲</th><th>架空再生回数</th><th>DL(indep)</th><th>シェア</th><th>DL(social)</th><th>シェア</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    <div class="row" style="margin-top:18px; gap:10px">
+      <button class="btn sm" id="refreshBtn">更新</button>
+      <button class="btn sm ghost" id="exportBtn">全データCSV</button>
+      <button class="btn sm warn" id="seedBtn">サンプルデータ生成(±20名)</button>
+      <button class="btn sm danger" id="clearBtn">全データ削除</button>
+      <span style="flex:1"></span>
+      <a class="tag" id="backLink2" style="cursor:pointer;color:var(--muted)">参加者画面へ戻る</a>
+    </div>
+    <p class="tag" style="margin-top:10px">※ データはこの端末のブラウザに保存された参加者記録から集計しています。別端末のデータは集約されません（集約には CONFIG.dataEndpoint を利用）。</p>`;
+  document.getElementById('refreshBtn').onclick=()=>render();
+  document.getElementById('exportBtn').onclick=exportAllCSV;
+  document.getElementById('seedBtn').onclick=()=>{ seedDemoData(20); render(); };
+  document.getElementById('clearBtn').onclick=()=>{ if(confirm('保存された全参加者データを削除します。よろしいですか？')){ clearAllData(); render(); } };
+  document.getElementById('backLink2').onclick=()=>{ screen='consent'; location.hash=''; render(); };
+}
+
+function exportAllCSV(){
+  const parts=loadAllParticipants();
+  const head=['participantId','condition','durationSec','songId','title','artist','fakePlays','displayPosition','listenCount','downloaded','downloadOrder'];
+  const lines=[head.join(',')];
+  parts.forEach(p=>(p.songs||[]).forEach(s=>{
+    lines.push([p.participantId,p.condition,p.durationSec,s.songId,csv(s.title),csv(s.artist),s.fakePlays,s.displayPosition,s.listenCount,s.downloaded?1:0,s.downloadOrder==null?'':s.downloadOrder].join(','));
+  }));
+  downloadFile(lines.join('\n'),'musicmarket_all.csv','text/csv');
+}
+function clearAllData(){
+  const keys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(STORE_PREFIX)===0) keys.push(k); }
+  keys.forEach(k=>localStorage.removeItem(k));
+}
+// 動作確認・プレビュー用の擬似参加者を生成（社会的影響で偏りと相関が生じる簡易モデル）
+function seedDemoData(per){
+  const logFake=CONFIG.songs.map(s=>Math.log(s.fakePlays));
+  const mf=logFake.reduce((a,b)=>a+b,0)/logFake.length;
+  const sf=Math.sqrt(logFake.reduce((a,b)=>a+(b-mf)*(b-mf),0)/logFake.length);
+  const appeal={}; CONFIG.songs.forEach(s=>{ const r=rng(seedFromId(s.id)+99); appeal[s.id]=(r()-0.5)*2; }); // 本来の魅力（架空回数と独立）
+  const logistic=x=>1/(1+Math.exp(-x));
+  ['independent','social'].forEach(cond=>{
+    for(let i=0;i<per;i++){
+      const pid='P-DEMO-'+cond[0]+'-'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5);
+      const songs=CONFIG.songs.map((s,idx)=>{
+        const z=(logFake[idx]-mf)/(sf||1);
+        const lin = -0.7 + 1.4*appeal[s.id] + (cond==='social'? 1.3*z : 0);
+        const downloaded = Math.random() < logistic(lin);
+        return {songId:s.id,title:s.title,artist:s.artist,fakePlays:s.fakePlays,displayPosition:idx+1,
+          listenCount:Math.floor(Math.random()*3)+(downloaded?1:0),firstListenAt:Date.now(),
+          downloaded,downloadOrder:null,downloadedAt:downloaded?Date.now():null};
+      });
+      const payload={participantId:pid,condition:cond,startedAt:Date.now(),finishedAt:Date.now(),
+        durationSec:60+Math.floor(Math.random()*120),totalDownloads:songs.filter(s=>s.downloaded).length,
+        userAgent:'demo',songs};
+      try{ localStorage.setItem(STORE_PREFIX+pid,JSON.stringify(payload)); }catch(e){}
+    }
+  });
+}
+
+/* ----------  データ整形・出力  ---------- */
+function buildPayload(){
+  const songs=CONFIG.songs.map(s=>{ const L=ensureLog(s.id);
+    return {songId:s.id,title:s.title,artist:s.artist,fakePlays:s.fakePlays,
+      displayPosition:STATE.songOrder.indexOf(s.id)+1,listenCount:L.listenCount,firstListenAt:L.firstListenAt,
+      downloaded:L.downloaded,downloadOrder:L.downloadOrder,downloadedAt:L.downloadedAt}; });
+  return {participantId:STATE.participantId,condition:STATE.condition,startedAt:STATE.startedAt,
+    finishedAt:STATE.finishedAt||Date.now(),durationSec:Math.round(((STATE.finishedAt||Date.now())-STATE.startedAt)/1000),
+    totalDownloads:totalDownloads(),userAgent:navigator.userAgent,songs};
+}
+function toCSV(p){
+  const head=['participantId','condition','durationSec','songId','title','artist','fakePlays','displayPosition','listenCount','downloaded','downloadOrder'];
+  const lines=[head.join(',')];
+  p.songs.forEach(s=>lines.push([p.participantId,p.condition,p.durationSec,s.songId,csv(s.title),csv(s.artist),s.fakePlays,s.displayPosition,s.listenCount,s.downloaded?1:0,s.downloadOrder==null?'':s.downloadOrder].join(',')));
+  return lines.join('\n');
+}
+function csv(v){ v=String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function downloadFile(content,name,type){ const b=new Blob([content],{type}),u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
+
+/* ----------  utils  ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escNum(n){ return n||0; }
+function formatNum(n){ return Number(n).toLocaleString('ja-JP'); }
+function fmtR(r){ return isNaN(r)?'—':r.toFixed(2); }
+
+render();
+</script>
+</body>
+</html>
