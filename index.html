@@ -102,7 +102,7 @@ const CONFIG = {
   socialSortByPlays: true,          // social群: 再生回数の降順で並べる
   independentRandomOrder: true,     // independent群: 曲順ランダム
   incrementOnDownload: false,       // 自分のDLで表示回数を+1する演出（既定OFF=固定値を厳密維持）
-  minDownloads: 0,                  // 完了に必要な最低DL数（0で制限なし）
+  minDownloads: 3,                  // 完了に必要な最低DL数（0で制限なし）
   requireListenBeforeDownload: false,
   clipSeconds: 10,                  // 試聴の長さ（秒）。実音源もこの長さで停止
   dataEndpoint: '',                 // 任意のPOST送信先（空なら送信しない）
@@ -283,7 +283,8 @@ function renderConsent(){
     <div class="card">
       <p>新人アーティストの楽曲（各約${CONFIG.clipSeconds}秒）を聴いて、あなたの好みを教えてください。</p>
       <h2>やること</h2>
-      <p class="muted">楽曲リストから気になる曲を自由に<b>試聴</b>できます。気に入った曲は<b>ダウンロード</b>で選んでください。曲数や時間に決まりはありません。終わったら「完了する」を押してください。</p>
+      <p class="muted">楽曲リストから気になる曲を自由に<b>試聴</b>できます。気に入った曲は<b>ダウンロード</b>で選んでください。${CONFIG.minDownloads>0?`<b>${CONFIG.minDownloads}曲以上</b>ダウンロードすると「完了する」に進めます。`:'終わったら「完了する」を押してください。'}</p>
+      <p class="note small">※「ダウンロード」はあなたの好みを選ぶための操作です。<b>実際に楽曲ファイルがダウンロード（保存）されることはありません。</b></p>
       <label class="check"><input type="checkbox" id="consent"><span>調査の趣旨を理解し、回答データが研究目的で匿名で利用されることに同意します。</span></label>
       <div class="row"><button class="btn" id="startBtn" disabled>はじめる</button>
         <span class="progress">参加者ID: ${STATE.participantId}</span></div>
@@ -314,7 +315,8 @@ function renderMarket(){
   const canFinish=totalDownloads()>=CONFIG.minDownloads;
   app.innerHTML=`
     <div class="topbar"><h1 style="margin:0">楽曲リスト</h1><span class="pill">ダウンロード: ${totalDownloads()}曲</span></div>
-    <p class="muted small">気になる曲を試聴し、気に入ったらダウンロードしてください。${need}</p>
+    <p class="muted small">気になる曲を試聴し、気に入ったら${CONFIG.minDownloads>0?`${CONFIG.minDownloads}曲以上`:''}ダウンロードしてください。${need}</p>
+    <p class="tag">※「ダウンロード」は好みの選択で、実際にファイルが保存されることはありません。</p>
     <div class="songlist">${rows}</div>
     <div class="footerbar center"><button class="btn green" id="finishBtn" ${canFinish?'':'disabled'}>完了する</button></div>`;
   app.querySelectorAll('[data-listen]').forEach(b=>b.onclick=()=>onListen(songById(b.dataset.listen)));
@@ -335,7 +337,6 @@ function renderDone(){
     <h1>ありがとうございました</h1>
     <div class="card">
       <p>ご協力ありがとうございました。回答は記録されました。</p>
-      <p>出欠のパスワードは「polanco」です</p>
       <h2>この調査について（説明）</h2>
       <p class="muted small">この調査は、他者の選択に関する情報が個人の音楽の好みにどう影響するかを調べる研究の一部です。参加者は2つの提示条件のいずれかに無作為に割り当てられており、一方の条件では各曲に再生回数が表示されていました。表示された再生回数は研究のために設定された数値であり、実際の人気を表すものではありません。</p>
       <div class="row" style="margin-top:16px">
